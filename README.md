@@ -84,3 +84,38 @@ lista de funcionarios da mesma empresa somente
         empresa_logada = self.request.user.funcionario.empresa
         return Funcionario.objects.filter(empresa=empresa_logada)
 ```
+**em funcionarios.model.py adicionar**
+
+vamos criar uma property que vira um field de funcionario, para calcular todas as horas extras.
+``` python
+    @property
+    def total_horas_extra(self):
+        total = self.registrohoraextra_set.filter(
+            utilizada=False).aggregate(
+            Sum('horas'))['horas__sum']
+        return total or 0
+```
+
+**para fazer com que quando damos get em um funcionario temos uma lista de suas horas extras** 
+em serializer
+``` python
+class FuncionarioSerializer(serializers.ModelSerializer):
+    registrohoraextra_set = RegistroHoraExtraSerializer(many=True)
+
+    class Meta:
+        model = Funcionario
+        fields = (
+            'id', 'nome', 'departamentos', 'empresa', 'user', 'imagem',
+            'total_horas_extra', 'registrohoraextra_set')
+
+```
+``` python
+ class HoraExtraList(ListView):
+    model = RegistroHoraExtra
+
+    def get_queryset(self):
+        empresa_logada = self.request.user.funcionario.empresa
+        return RegistroHoraExtra.objects.filter(
+            funcionario__empresa=empresa_logada) 
+```
+funcionario__empresa chega no field empresa do funcionario que esta no registrohoraextra
